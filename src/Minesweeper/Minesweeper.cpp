@@ -10,12 +10,15 @@
 #define IDT_SCORETIME_TIMER 1
 
 #define SWEEPER_SIZE   16
-#define SWEEPER_MINES  40
+#define SWEEPER_MINES  20
 
 #define BOARD_WIDTH (FRAME_WIDTH + SWEEPER_SIZE * CELL_SIZE)
 #define BOARD_HEIGHT (FRAME_HEIGHT + SWEEPER_SIZE * CELL_SIZE)
-GameBoard * gameBoard;
 
+#define RESET_BUTTON_X (BOARD_WIDTH / 2 - RESET_BUTTON_SIZE / 2)
+#define RESET_BUTTON_Y (SHADOW_SIZE + FRAME_SIZE + SCOREBOARD_SIZE / 2 - RESET_BUTTON_SIZE / 2)
+GameBoard * gameBoard;
+bool isButtonDown;
 HINSTANCE hInst;
 TCHAR szWindowClass[MAX_LOADSTRING];
 
@@ -134,6 +137,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     case WM_LBUTTONDOWN:
         xPos = GET_X_LPARAM(lParam);
         yPos = GET_Y_LPARAM(lParam);
+      
+        if (xPos >= RESET_BUTTON_X &&
+            xPos < RESET_BUTTON_X + RESET_BUTTON_SIZE &&
+            yPos >= RESET_BUTTON_Y &&
+            yPos < RESET_BUTTON_Y + RESET_BUTTON_SIZE) {
+
+
+            refrRect.right = RESET_BUTTON_X + RESET_BUTTON_SIZE;
+            refrRect.left = RESET_BUTTON_X;
+            refrRect.bottom = RESET_BUTTON_Y + RESET_BUTTON_SIZE;
+            refrRect.top = RESET_BUTTON_Y;
+
+            InvalidateRect(hWnd, &refrRect, TRUE);
+
+            isButtonDown = true;
+            break;
+        }
 
         gameBoard->Show((xPos - BOARD_X) / CELL_SIZE, (yPos - BOARD_Y) / CELL_SIZE);
 
@@ -148,6 +168,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         refrRect.right = refrRect.left + SCOREBOARD_NUMBER_WIDTH * 3;
         refrRect.bottom = refrRect.top + SCOREBOARD_NUMBER_HEIGHT;
         InvalidateRect(hWnd, &refrRect, TRUE);
+        break;
+    case WM_LBUTTONUP:
+        if (isButtonDown) {
+            gameBoard->Reset();
+            InvalidateRect(hWnd, 0, TRUE);
+
+            isButtonDown = false;
+        }
+
+
         break;
     case WM_RBUTTONDOWN:
         xPos = GET_X_LPARAM(lParam);
@@ -190,6 +220,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             SWEEPER_SIZE * CELL_SIZE - SCOREBOARD_NUMBER_WIDTH * 3,
             SCOREBOARD_SIZE + FRAME_SIZE - SCOREBOARD_NUMBER_HEIGHT, 
             gameBoard->GetPlayTime(), 3);
+
+        DrawResetButton(hdc, RESET_BUTTON_X, RESET_BUTTON_Y, BUTTON_STATE_NORMAL, isButtonDown);
 
         for (int y = 0; y < gameBoard->GetSize(); y++)
             for (int x = 0; x < gameBoard->GetSize(); x++) {

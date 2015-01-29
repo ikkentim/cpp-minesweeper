@@ -16,68 +16,84 @@
 #define COLOR_SCOREBOARD_ACTIVE     RGB(0xFF, 0x00, 0x00)
 #define COLOR_SCOREBOARD_INACTIVE   RGB(0x7B, 0x00, 0x00)
 
-void DrawCell(HDC hdc, int x, int y)
-{
+void DrawShadow(HDC hdc, int x, int y, int width, int height, COLORREF colortl, COLORREF colorbr) {
     POINT Pt[6];
 
-    SetDCPenColor(hdc, COLOR_CONTROL);
-    SetDCBrushColor(hdc, COLOR_CONTROL);
-    Rectangle(hdc, x, y, x + CELL_SIZE, y + CELL_SIZE);
+    /* Top-left
+    */
+    Pt[0].x = x;
+    Pt[0].y = y;
 
-    // lt
-    Pt[0].x = x + 0;
-    Pt[0].y = y + 0;
+    Pt[1].x = x + width - 1 - SHADOW_CORNER_OFFSET;
+    Pt[1].y = y;
 
-    Pt[1].x = x + CELL_SIZE;
-    Pt[1].y = y + 0;
+    Pt[2].x = x + width - SHADOW_SIZE - SHADOW_CORNER_OFFSET;
+    Pt[2].y = y + SHADOW_SIZE - 1;
 
-    Pt[2].x = x + CELL_SIZE - CELL_SHADOW;
-    Pt[2].y = y + CELL_SHADOW;
+    Pt[3].x = x + SHADOW_SIZE - 1;
+    Pt[3].y = y + SHADOW_SIZE - 1;
 
-    Pt[3].x = x + CELL_SHADOW;
-    Pt[3].y = y + CELL_SHADOW;
+    Pt[4].x = x + SHADOW_SIZE - 1;
+    Pt[4].y = y + height - SHADOW_SIZE - SHADOW_CORNER_OFFSET;
 
-    Pt[4].x = x + CELL_SHADOW;
-    Pt[4].y = y + CELL_SIZE - CELL_SHADOW;
+    Pt[5].x = x;
+    Pt[5].y = y + height - 1 - SHADOW_CORNER_OFFSET;
 
-    Pt[5].x = x + 0;
-    Pt[5].y = y + CELL_SIZE;
-
-    SetDCPenColor(hdc, COLOR_CONTROL_LIGHT);
-    SetDCBrushColor(hdc, COLOR_CONTROL_LIGHT);
+    SetDCPenColor(hdc, colortl);
+    SetDCBrushColor(hdc, colortl);
     Polygon(hdc, Pt, 6);
 
-    // rb
-    Pt[0].x = x + CELL_SIZE;
-    Pt[0].y = y + CELL_SIZE;
+    /* Bottom right
+    */
+    Pt[0].x = x + width - 1;
+    Pt[0].y = y + height - 1;
 
-    Pt[1].x = x + 0;
-    Pt[1].y = y + CELL_SIZE;
+    Pt[1].x = x + SHADOW_CORNER_OFFSET;
+    Pt[1].y = y + height - 1;
 
-    Pt[2].x = x + CELL_SHADOW;
-    Pt[2].y = y + CELL_SIZE - CELL_SHADOW;
+    Pt[2].x = x + SHADOW_SIZE - 1 + SHADOW_CORNER_OFFSET;
+    Pt[2].y = y + height - SHADOW_SIZE;
 
-    Pt[3].x = x + CELL_SIZE - CELL_SHADOW;
-    Pt[3].y = y + CELL_SIZE - CELL_SHADOW;
+    Pt[3].x = x + width - SHADOW_SIZE;
+    Pt[3].y = y + height - SHADOW_SIZE;
 
-    Pt[4].x = x + CELL_SIZE - CELL_SHADOW;
-    Pt[4].y = y + CELL_SHADOW;
+    Pt[4].x = x + width - SHADOW_SIZE;
+    Pt[4].y = y + SHADOW_SIZE - 1 + SHADOW_CORNER_OFFSET;
 
-    Pt[5].x = x + CELL_SIZE;
-    Pt[5].y = y + 0;
+    Pt[5].x = x + width - 1;
+    Pt[5].y = y + SHADOW_CORNER_OFFSET;
 
-    SetDCPenColor(hdc, COLOR_CONTROL_DARK);
-    SetDCBrushColor(hdc, COLOR_CONTROL_DARK);
+    SetDCPenColor(hdc, colorbr);
+    SetDCBrushColor(hdc, colorbr);
 
     Polygon(hdc, Pt, 6);
+}
+
+void DrawCell(HDC hdc, int x, int y) {
+    DrawShadow(hdc, x, y, CELL_SIZE, CELL_SIZE, COLOR_CONTROL_LIGHT, COLOR_CONTROL_DARK);
 }
 
 
 void DrawVisibleCell(HDC hdc, int x, int y, int count)
 {
-    SetDCPenColor(hdc, COLOR_CONTROL_DARK);
+    SetDCPenColor(hdc, COLOR_CONTROL);
     SetDCBrushColor(hdc, COLOR_CONTROL);
     Rectangle(hdc, x, y, x + CELL_SIZE, y + CELL_SIZE);
+
+    POINT Pt[3];
+
+    Pt[0].x = x;
+    Pt[0].y = y + CELL_SIZE - 1;
+
+    Pt[1].x = x;
+    Pt[1].y = y;
+
+    Pt[2].x = x + CELL_SIZE - 1;
+    Pt[2].y = y;
+
+    SetDCPenColor(hdc, COLOR_CONTROL_DARK);
+    SetDCBrushColor(hdc, COLOR_CONTROL_DARK);
+    Polyline(hdc, Pt, 3);
 
     if (!count) return;
 
@@ -210,9 +226,25 @@ void DrawFlaggedCell(HDC hdc, int x, int y)
 
 void DrawBombCell(HDC hdc, int x, int y, bool hasExploded)
 {
-    SetDCPenColor(hdc, COLOR_CONTROL_DARK);
+    POINT Pt[8];
+    DWORD  lpPts[] = { 2, 2, 2, 2 };
+
+    SetDCPenColor(hdc, hasExploded ? COLOR_EXPLOAD : COLOR_CONTROL);
     SetDCBrushColor(hdc, hasExploded ? COLOR_EXPLOAD : COLOR_CONTROL);
     Rectangle(hdc, x, y, x + CELL_SIZE, y + CELL_SIZE);
+
+    Pt[0].x = x;
+    Pt[0].y = y + CELL_SIZE - 1;
+
+    Pt[1].x = x;
+    Pt[1].y = y;
+
+    Pt[2].x = x + CELL_SIZE - 1;
+    Pt[2].y = y;
+
+    SetDCPenColor(hdc, COLOR_CONTROL_DARK);
+    SetDCBrushColor(hdc, COLOR_CONTROL_DARK);
+    Polyline(hdc, Pt, 3);
 
     const int bombSize = 14;
     const int spikesOffset = 2;
@@ -230,8 +262,6 @@ void DrawBombCell(HDC hdc, int x, int y, bool hasExploded)
     Ellipse(hdc, offsetX + spikesOffset, offsetY + spikesOffset, 
         offsetX + bombSize - spikesOffset, offsetY + bombSize - spikesOffset);
 
-    POINT Pt[8];
-    DWORD  lpPts[] = { 2, 2, 2, 2};
 
     Pt[0].x = offsetX + spikesOffset;
     Pt[0].y = offsetY + spikesOffset;
@@ -353,147 +383,84 @@ void DrawBoard(HDC hdc, int width, int height, int boardWidth, int boardHeight) 
 
     /* Frame: Top-left border
      */
-    Pt[0].x = 0;
-    Pt[0].y = 0;
 
-    Pt[1].x = width - SHADOW_CORNER_OFFSET;
-    Pt[1].y = 0;
+    DrawShadow(hdc, 0, 0, width, height, COLOR_CONTROL_LIGHT, COLOR_CONTROL_DARK);
+    DrawShadow(hdc, BOARD_X - SHADOW_SIZE, BOARD_Y - SHADOW_SIZE, 
+        boardWidth + SHADOW_SIZE * 2, boardHeight + SHADOW_SIZE * 2, 
+        COLOR_CONTROL_DARK, COLOR_CONTROL_LIGHT);
 
-    Pt[2].x = width - SHADOW_SIZE - SHADOW_CORNER_OFFSET;
-    Pt[2].y = SHADOW_SIZE;
+    DrawShadow(hdc, SHADOW_SIZE + FRAME_SIZE, SHADOW_SIZE + FRAME_SIZE,
+        width - SHADOW_SIZE * 2 - FRAME_SIZE * 2, SCOREBOARD_SIZE, 
+        COLOR_CONTROL_DARK, COLOR_CONTROL_LIGHT);
+}
 
-    Pt[3].x = SHADOW_SIZE;
-    Pt[3].y = SHADOW_SIZE;
+void DrawResetButton(HDC hdc, int x, int y, int status, bool isDown) {
+    POINT Pt[6];
 
-    Pt[4].x = SHADOW_SIZE;
-    Pt[4].y = height - SHADOW_SIZE - SHADOW_CORNER_OFFSET;
+    DrawShadow(hdc, x, y, RESET_BUTTON_SIZE, RESET_BUTTON_SIZE, 
+        COLOR_CONTROL_DARK, COLOR_CONTROL_DARK);
 
-    Pt[5].x = 0;
-    Pt[5].y = height - SHADOW_CORNER_OFFSET;
+    if (!isDown) {
+        DrawShadow(hdc, x + 1, y + 1, 
+            RESET_BUTTON_SIZE - 2, RESET_BUTTON_SIZE - 2,
+            COLOR_CONTROL_LIGHT, COLOR_CONTROL_DARK);
+    }
+    else {
+        SetDCPenColor(hdc, COLOR_CONTROL);
+        SetDCBrushColor(hdc, COLOR_CONTROL);
+        Rectangle(hdc, x + 2, y + 2,
+            x + RESET_BUTTON_SIZE - 2, y + RESET_BUTTON_SIZE - 2);
+    }
 
-    SetDCPenColor(hdc, COLOR_CONTROL_LIGHT);
-    SetDCBrushColor(hdc, COLOR_CONTROL_LIGHT);
-    Polygon(hdc, Pt, 6);
+    SetDCPenColor(hdc, RGB(0,0,0));
+    SetDCBrushColor(hdc, RGB(255,255,0));
+    Ellipse(hdc, x + 5, y + 5, x + 5 + 17, y + 5 + 17);
 
-    /* Frame: Bottom-right border
-    */
-    Pt[0].x = width;
-    Pt[0].y = height;
+    SetDCPenColor(hdc, RGB(0, 0, 0));
+    SetDCBrushColor(hdc, RGB(0, 0, 0));
+    switch (status) {
+    default:
+        Pt[0].x = x + 10;
+        Pt[0].y = y + 10;
 
-    Pt[1].x = SHADOW_CORNER_OFFSET;
-    Pt[1].y = height;
+        Pt[1].x = x + 11;
+        Pt[1].y = y + 10;
 
-    Pt[2].x = SHADOW_SIZE + SHADOW_CORNER_OFFSET;
-    Pt[2].y = height - SHADOW_SIZE;
+        Pt[2].x = x + 11;
+        Pt[2].y = y + 11;
 
-    Pt[3].x = width - SHADOW_SIZE;
-    Pt[3].y = height - SHADOW_SIZE;
+        Pt[3].x = x + 10;
+        Pt[3].y = y + 11;
 
-    Pt[4].x = width - SHADOW_SIZE;
-    Pt[4].y = SHADOW_SIZE + SHADOW_CORNER_OFFSET;
+        Polygon(hdc, Pt, 4);
 
-    Pt[5].x = width;
-    Pt[5].y = SHADOW_CORNER_OFFSET;
+        Pt[0].x = x + 15;
+        Pt[0].y = y + 10;
 
-    SetDCPenColor(hdc, COLOR_CONTROL_DARK);
-    SetDCBrushColor(hdc, COLOR_CONTROL_DARK);
-    Polygon(hdc, Pt, 6);
+        Pt[1].x = x + 16;
+        Pt[1].y = y + 10;
 
+        Pt[2].x = x + 16;
+        Pt[2].y = y + 11;
 
-    /* Board: Top-left border
-    */
-    Pt[0].x = BOARD_X - SHADOW_SIZE;
-    Pt[0].y = BOARD_Y - SHADOW_SIZE;
+        Pt[3].x = x + 15;
+        Pt[3].y = y + 11;
 
-    Pt[1].x = BOARD_X + boardWidth + SHADOW_SIZE - SHADOW_CORNER_OFFSET;
-    Pt[1].y = BOARD_Y - SHADOW_SIZE;
+        Polygon(hdc, Pt, 4);
 
-    Pt[2].x = BOARD_X + boardWidth - SHADOW_CORNER_OFFSET;
-    Pt[2].y = BOARD_Y;
+        Pt[0].x = x + 9;
+        Pt[0].y = y + 15;
 
-    Pt[3].x = BOARD_X;
-    Pt[3].y = BOARD_Y;
+        Pt[1].x = x + 11;
+        Pt[1].y = y + 17;
 
-    Pt[4].x = BOARD_X;
-    Pt[4].y = BOARD_Y + boardHeight - SHADOW_CORNER_OFFSET;
+        Pt[2].x = x + 15;
+        Pt[2].y = y + 17;
 
-    Pt[5].x = BOARD_X - SHADOW_SIZE;
-    Pt[5].y = BOARD_Y + boardHeight + SHADOW_SIZE - SHADOW_CORNER_OFFSET;
+        Pt[3].x = x + 18;
+        Pt[3].y = y + 14;
 
-    SetDCPenColor(hdc, COLOR_CONTROL_DARK);
-    SetDCBrushColor(hdc, COLOR_CONTROL_DARK);
-    Polygon(hdc, Pt, 6);
-
-    /* Board: Bottom-right border
-    */
-    Pt[0].x = BOARD_X + boardWidth;
-    Pt[0].y = BOARD_Y + boardHeight;
-
-    Pt[1].x = BOARD_X + SHADOW_CORNER_OFFSET;
-    Pt[1].y = BOARD_Y + boardHeight;
-
-    Pt[2].x = BOARD_X - SHADOW_SIZE + SHADOW_CORNER_OFFSET;
-    Pt[2].y = BOARD_Y + boardHeight + SHADOW_SIZE;
-
-    Pt[3].x = BOARD_X + boardWidth + SHADOW_SIZE;
-    Pt[3].y = BOARD_Y + boardHeight + SHADOW_SIZE;
-
-    Pt[4].x = BOARD_X + boardWidth + SHADOW_SIZE;
-    Pt[4].y = BOARD_Y - SHADOW_SIZE + SHADOW_CORNER_OFFSET;
-
-    Pt[5].x = BOARD_X + boardWidth;
-    Pt[5].y = BOARD_Y + SHADOW_CORNER_OFFSET;
-
-    SetDCPenColor(hdc, COLOR_CONTROL_LIGHT);
-    SetDCBrushColor(hdc, COLOR_CONTROL_LIGHT);
-    Polygon(hdc, Pt, 6);
-
-    /* Scoreboard: Top-left border
-    */
-    Pt[0].x = SHADOW_SIZE + FRAME_SIZE;
-    Pt[0].y = SHADOW_SIZE + FRAME_SIZE;
-
-    Pt[1].x = width - SHADOW_SIZE - FRAME_SIZE - SHADOW_CORNER_OFFSET;
-    Pt[1].y = SHADOW_SIZE + FRAME_SIZE;
-
-    Pt[2].x = width - SHADOW_SIZE * 2 - FRAME_SIZE - SHADOW_CORNER_OFFSET;
-    Pt[2].y = SHADOW_SIZE * 2 + FRAME_SIZE;
-
-    Pt[3].x = SHADOW_SIZE * 2 + FRAME_SIZE;
-    Pt[3].y = SHADOW_SIZE * 2 + FRAME_SIZE;
-
-    Pt[4].x = SHADOW_SIZE * 2 + FRAME_SIZE;
-    Pt[4].y = SCOREBOARD_SIZE + FRAME_SIZE - SHADOW_CORNER_OFFSET;
-
-    Pt[5].x = SHADOW_SIZE + FRAME_SIZE;
-    Pt[5].y = SCOREBOARD_SIZE + FRAME_SIZE + SHADOW_SIZE - SHADOW_CORNER_OFFSET;
-
-    SetDCPenColor(hdc, COLOR_CONTROL_DARK);
-    SetDCBrushColor(hdc, COLOR_CONTROL_DARK);
-    Polygon(hdc, Pt, 6);
-
-    /* Scoreboard: Bottom-right border
-    */
-    Pt[0].x = width - SHADOW_SIZE - FRAME_SIZE;
-    Pt[0].y = SHADOW_SIZE + FRAME_SIZE + SHADOW_CORNER_OFFSET;
-
-    Pt[1].x = width - SHADOW_SIZE - FRAME_SIZE;
-    Pt[1].y = SHADOW_SIZE + FRAME_SIZE + SCOREBOARD_SIZE;
-
-    Pt[2].x = SHADOW_SIZE + FRAME_SIZE + SHADOW_CORNER_OFFSET;
-    Pt[2].y = SHADOW_SIZE + FRAME_SIZE + SCOREBOARD_SIZE;
-
-    Pt[3].x = SHADOW_SIZE * 2 + FRAME_SIZE + SHADOW_CORNER_OFFSET;
-    Pt[3].y = FRAME_SIZE + SCOREBOARD_SIZE;
-
-    Pt[4].x = width - SHADOW_SIZE * 2 - FRAME_SIZE;
-    Pt[4].y = FRAME_SIZE + SCOREBOARD_SIZE;
-
-    Pt[5].x = width - SHADOW_SIZE * 2 - FRAME_SIZE;
-    Pt[5].y = SHADOW_SIZE * 2 + FRAME_SIZE + SHADOW_CORNER_OFFSET;
-
-    SetDCPenColor(hdc, COLOR_CONTROL_LIGHT);
-    SetDCBrushColor(hdc, COLOR_CONTROL_LIGHT);
-    Polygon(hdc, Pt, 6);
-
+        Polyline(hdc, Pt, 4);
+        break;
+    }
 }
