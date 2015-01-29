@@ -20,8 +20,9 @@ public:
     void Show(int x, int y);
     void Flag(int x, int y);
     void Reset();
+    int GetPlayTime();
     int GetScore() {
-        return 0;
+        return score;
     }
     int GetSize() {
         return boardSize;
@@ -46,9 +47,14 @@ public:
         return CELL_UNKNOWN;
     }
 private:
+    int score = 0;
     int boardSize;
     int boardMines;
     bool isGameOver;
+    bool isStarted;
+    time_t startTime;
+    time_t endTime;
+
     BoardCell *boardCells;
     BoardCell *GetCell(int x, int y) {
         if (x < 0 || x >= boardSize ||
@@ -58,6 +64,7 @@ private:
         return &boardCells[idx];
     }
     void GenerateBoard(int size, int mines);
+    void Reveal(int x, int y);
     bool IsDiscoverable(int x, int y) {
         auto cell = GetCell(x, y);
 

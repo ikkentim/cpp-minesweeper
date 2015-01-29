@@ -7,11 +7,13 @@
 
 #define MAX_LOADSTRING 100
 
+#define IDT_SCORETIME_TIMER 1
+
 #define SWEEPER_SIZE   16
 #define SWEEPER_MINES  40
 
-#define BOARD_WIDTH (BOARD_X + SWEEPER_SIZE * CELL_SIZE + BOARD_SHADOW + BOARD_OFFSET)
-#define BOARD_HEIGHT (BOARD_Y + SWEEPER_SIZE * CELL_SIZE + BOARD_SHADOW + BOARD_OFFSET)
+#define BOARD_WIDTH (FRAME_WIDTH + SWEEPER_SIZE * CELL_SIZE)
+#define BOARD_HEIGHT (FRAME_HEIGHT + SWEEPER_SIZE * CELL_SIZE)
 GameBoard * gameBoard;
 
 HINSTANCE hInst;
@@ -96,6 +98,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow) {
 
    if (!hWnd) return false;
 
+   SetTimer(hWnd, IDT_SCORETIME_TIMER, 1000, (TIMERPROC)NULL);
+
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
 
@@ -106,6 +110,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 	int wmId, wmEvent, xPos, yPos;
 	PAINTSTRUCT ps;
 	HDC hdc;
+    RECT refrRect;
 	switch (message) {
 	case WM_COMMAND:
 		wmId    = LOWORD(wParam);
@@ -131,14 +136,43 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         yPos = GET_Y_LPARAM(lParam);
 
         gameBoard->Show((xPos - BOARD_X) / CELL_SIZE, (yPos - BOARD_Y) / CELL_SIZE);
-        InvalidateRect(hWnd, 0, TRUE);
+
+        refrRect.left = BOARD_X;
+        refrRect.top = BOARD_Y;
+        refrRect.right = BOARD_X + SWEEPER_SIZE * CELL_SIZE;
+        refrRect.bottom = BOARD_Y + SWEEPER_SIZE * CELL_SIZE;
+        InvalidateRect(hWnd, &refrRect, TRUE);
+
+        refrRect.left = SHADOW_SIZE * 2 + FRAME_SIZE;
+        refrRect.top = SCOREBOARD_SIZE + FRAME_SIZE - SCOREBOARD_NUMBER_HEIGHT;
+        refrRect.right = refrRect.left + SCOREBOARD_NUMBER_WIDTH * 3;
+        refrRect.bottom = refrRect.top + SCOREBOARD_NUMBER_HEIGHT;
+        InvalidateRect(hWnd, &refrRect, TRUE);
         break;
     case WM_RBUTTONDOWN:
         xPos = GET_X_LPARAM(lParam);
         yPos = GET_Y_LPARAM(lParam);
 
         gameBoard->Flag((xPos - BOARD_X) / CELL_SIZE, (yPos - BOARD_Y) / CELL_SIZE);
-        InvalidateRect(hWnd, 0, TRUE);
+
+        refrRect.left = BOARD_X;
+        refrRect.top = BOARD_Y;
+        refrRect.right = BOARD_X + SWEEPER_SIZE * CELL_SIZE;
+        refrRect.bottom = BOARD_Y + SWEEPER_SIZE * CELL_SIZE;
+        InvalidateRect(hWnd, &refrRect, TRUE);
+        break;
+    case WM_TIMER:
+        switch (wParam)
+        {
+        case IDT_SCORETIME_TIMER:
+            refrRect.right = SHADOW_SIZE * 2 + FRAME_SIZE + SWEEPER_SIZE * CELL_SIZE;
+            refrRect.left = refrRect.right - SCOREBOARD_NUMBER_WIDTH * 3;
+            refrRect.bottom = SCOREBOARD_SIZE + FRAME_SIZE;
+            refrRect.top = refrRect.bottom - SCOREBOARD_NUMBER_HEIGHT;
+
+            InvalidateRect(hWnd, &refrRect, TRUE);
+            break;
+        }
         break;
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
@@ -147,6 +181,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         SelectObject(hdc, GetStockObject(DC_BRUSH));
 
         DrawBoard(hdc, BOARD_WIDTH, BOARD_HEIGHT, SWEEPER_SIZE * CELL_SIZE, SWEEPER_SIZE * CELL_SIZE);
+
+        DrawScoreboardNumbers(hdc, SHADOW_SIZE * 2 + FRAME_SIZE, 
+            SCOREBOARD_SIZE + FRAME_SIZE - SCOREBOARD_NUMBER_HEIGHT, 
+            gameBoard->GetScore(), 3);
+
+        DrawScoreboardNumbers(hdc, SHADOW_SIZE * 2 + FRAME_SIZE + 
+            SWEEPER_SIZE * CELL_SIZE - SCOREBOARD_NUMBER_WIDTH * 3,
+            SCOREBOARD_SIZE + FRAME_SIZE - SCOREBOARD_NUMBER_HEIGHT, 
+            gameBoard->GetPlayTime(), 3);
 
         for (int y = 0; y < gameBoard->GetSize(); y++)
             for (int x = 0; x < gameBoard->GetSize(); x++) {

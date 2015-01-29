@@ -2,6 +2,7 @@
 #include "stdafx.h"
 #include "GameBoard.h"
 #include <assert.h>
+#include <time.h>
 
 void GameBoard::GenerateBoard(int size, int mines) {
     boardSize = size;
@@ -47,11 +48,15 @@ void GameBoard::GenerateBoard(int size, int mines) {
 void GameBoard::Reset() {
     GenerateBoard(boardSize, boardMines);
 
+    score = 0;
+    isStarted = false;
     isGameOver = false;
 }
 GameBoard::GameBoard(int size, int mines) {
     GenerateBoard(size, mines);
 
+    score = 0;
+    isStarted = false;
     isGameOver = false;
 }
 
@@ -59,7 +64,7 @@ GameBoard::~GameBoard() {
     delete[] boardCells;
 }
 
-void GameBoard::Show(int x, int y) {
+void GameBoard::Reveal(int x, int y) {
     BoardCell *cell = GetCell(x, y);
 
     if (!cell || cell->isVisible || isGameOver) return;
@@ -71,10 +76,28 @@ void GameBoard::Show(int x, int y) {
 
     if (cell->neighbouringBombs) return;
 
-    if (IsDiscoverable(x - 1, y)) Show(x - 1, y);
-    if (IsDiscoverable(x + 1, y)) Show(x + 1, y);
-    if (IsDiscoverable(x, y - 1)) Show(x, y - 1);
-    if (IsDiscoverable(x, y + 1)) Show(x, y + 1);
+    if (IsDiscoverable(x - 1, y)) Reveal(x - 1, y);
+    if (IsDiscoverable(x + 1, y)) Reveal(x + 1, y);
+    if (IsDiscoverable(x, y - 1)) Reveal(x, y - 1);
+    if (IsDiscoverable(x, y + 1)) Reveal(x, y + 1);
+
+    if (IsDiscoverable(x - 1, y - 1)) Reveal(x - 1, y - 1);
+    if (IsDiscoverable(x + 1, y - 1)) Reveal(x + 1, y - 1);
+    if (IsDiscoverable(x + 1, y + 1)) Reveal(x + 1, y + 1);
+    if (IsDiscoverable(x - 1, y + 1)) Reveal(x - 1, y + 1);
+}
+void GameBoard::Show(int x, int y) {
+    BoardCell *cell = GetCell(x, y);
+
+    if (!cell || cell->isVisible || isGameOver) return;
+
+    if (!isStarted)
+        startTime = time(NULL);
+
+
+    isStarted = true;
+    score++;
+    Reveal(x, y);
 }
 
 void GameBoard::Flag(int x, int y) {
@@ -83,4 +106,11 @@ void GameBoard::Flag(int x, int y) {
     if (!cell || cell->isVisible || isGameOver) return;
 
     cell->isFlagged = !cell->isFlagged;
+}
+
+int GameBoard::GetPlayTime() {
+    if (!isStarted) return 0;
+    if (!isGameOver) endTime = time(NULL);
+
+    return (int)difftime(endTime, startTime);
 }
