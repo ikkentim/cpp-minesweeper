@@ -48,16 +48,18 @@ void GameBoard::GenerateBoard(int size, int mines) {
 void GameBoard::Reset() {
     GenerateBoard(boardSize, boardMines);
 
-    score = 0;
+    score = boardMines;
     isStarted = false;
-    isGameOver = false;
+    isVictory = false;
+    isDefeat = false;
 }
 GameBoard::GameBoard(int size, int mines) {
     GenerateBoard(size, mines);
 
-    score = 0;
+    score = mines;
     isStarted = false;
-    isGameOver = false;
+    isVictory = false;
+    isDefeat = false;
 }
 
 GameBoard::~GameBoard() {
@@ -67,12 +69,15 @@ GameBoard::~GameBoard() {
 void GameBoard::Reveal(int x, int y) {
     BoardCell *cell = GetCell(x, y);
 
-    if (!cell || cell->isVisible || isGameOver) return;
+    if (!cell || cell->isVisible || IsGameOver()) return;
 
     cell->isVisible = true;
     cell->isFlagged = false;
 
-    if (cell->isBomb || IsAllCellsVisible() || IsAllBombsFlagged()) isGameOver = true;
+    if (cell->isBomb) isDefeat = true;
+    if (IsAllCellsVisible()) {
+        isVictory = true;
+    }
 
     if (cell->neighbouringBombs) return;
 
@@ -89,28 +94,28 @@ void GameBoard::Reveal(int x, int y) {
 void GameBoard::Show(int x, int y) {
     BoardCell *cell = GetCell(x, y);
 
-    if (!cell || cell->isVisible || isGameOver) return;
+    if (!cell || cell->isVisible || IsGameOver()) return;
 
     if (!isStarted)
         startTime = time(NULL);
 
 
     isStarted = true;
-    score++;
     Reveal(x, y);
 }
 
 void GameBoard::Flag(int x, int y) {
     BoardCell *cell = GetCell(x, y);
 
-    if (!cell || cell->isVisible || isGameOver) return;
+    if (!cell || cell->isVisible || IsGameOver()) return;
 
+    score += cell->isFlagged ? 1 : -1;
     cell->isFlagged = !cell->isFlagged;
 }
 
 int GameBoard::GetPlayTime() {
     if (!isStarted) return 0;
-    if (!isGameOver) endTime = time(NULL);
+    if (!IsGameOver()) endTime = time(NULL);
 
     return (int)difftime(endTime, startTime);
 }

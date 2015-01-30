@@ -7,7 +7,7 @@
 #define SHADOW_SIZE                 2
 #define SHADOW_CORNER_OFFSET        1
 
-#define SCOREBOARD_SIZE             30
+#define SCOREBOARD_SIZE             37
 #define FRAME_SIZE                  6
 
 #define SCOREBOARD_NUMBER_WIDTH     13

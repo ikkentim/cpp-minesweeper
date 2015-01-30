@@ -10,15 +10,21 @@
 #define IDT_SCORETIME_TIMER 1
 
 #define SWEEPER_SIZE   16
-#define SWEEPER_MINES  20
+#define SWEEPER_MINES  40
 
 #define BOARD_WIDTH (FRAME_WIDTH + SWEEPER_SIZE * CELL_SIZE)
 #define BOARD_HEIGHT (FRAME_HEIGHT + SWEEPER_SIZE * CELL_SIZE)
 
 #define RESET_BUTTON_X (BOARD_WIDTH / 2 - RESET_BUTTON_SIZE / 2)
 #define RESET_BUTTON_Y (SHADOW_SIZE + FRAME_SIZE + SCOREBOARD_SIZE / 2 - RESET_BUTTON_SIZE / 2)
+
+#define SCORE_NUMBER_Y (SHADOW_SIZE + FRAME_SIZE + SCOREBOARD_SIZE / 2 - SCOREBOARD_NUMBER_HEIGHT / 2)
+
 GameBoard * gameBoard;
 bool isButtonDown;
+bool isClicking;
+int hoverX = -1, hoverY = -1;
+
 HINSTANCE hInst;
 TCHAR szWindowClass[MAX_LOADSTRING];
 
@@ -108,12 +114,66 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow) {
 
    return true;
 }
+void InvalidateAll(HWND hWnd) {
+    InvalidateRect(hWnd, 0, TRUE);
+}
 
+void InvalidateScore(HWND hWnd) {
+    RECT rect;
+    rect.left = SHADOW_SIZE * 2 + FRAME_SIZE * 2;
+    rect.top = SCORE_NUMBER_Y;
+    rect.right = rect.left + SCOREBOARD_NUMBER_WIDTH * 3;
+    rect.bottom = SCORE_NUMBER_Y + SCOREBOARD_NUMBER_HEIGHT;
+
+    InvalidateRect(hWnd, &rect, TRUE);
+}
+
+void InvalidateTime(HWND hWnd) {
+    RECT rect;
+    rect.right = SHADOW_SIZE * 2 + SWEEPER_SIZE * CELL_SIZE;
+    rect.left = rect.right - SCOREBOARD_NUMBER_WIDTH * 3;
+
+    rect.bottom = SCORE_NUMBER_Y + SCOREBOARD_NUMBER_HEIGHT;
+    rect.top = SCORE_NUMBER_Y;
+
+    InvalidateRect(hWnd, &rect, TRUE);
+}
+
+void InvalidateBoard(HWND hWnd) {
+    RECT rect = {
+        BOARD_X, BOARD_Y,
+        BOARD_X + SWEEPER_SIZE * CELL_SIZE,
+        BOARD_Y + SWEEPER_SIZE * CELL_SIZE
+    };
+
+    InvalidateRect(hWnd, &rect, TRUE);
+}
+
+void InvalidateReset(HWND hWnd) {
+    RECT rect = { 
+        RESET_BUTTON_X, RESET_BUTTON_Y,
+        RESET_BUTTON_X + RESET_BUTTON_SIZE, 
+        RESET_BUTTON_Y + RESET_BUTTON_SIZE 
+    };
+
+    InvalidateRect(hWnd, &rect, TRUE);
+}
+
+void InvalidateCell(HWND hWnd, int x, int y) {
+    RECT rect = {
+        BOARD_X + x * CELL_SIZE,
+        BOARD_Y + y * CELL_SIZE,
+        BOARD_X + x * CELL_SIZE + CELL_SIZE,
+        BOARD_Y + y * CELL_SIZE + CELL_SIZE
+    };
+
+    InvalidateRect(hWnd, &rect, TRUE);
+
+}
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-	int wmId, wmEvent, xPos, yPos;
+	int wmId, wmEvent, xPos, yPos, xCell, yCell;
 	PAINTSTRUCT ps;
 	HDC hdc;
-    RECT refrRect;
 	switch (message) {
 	case WM_COMMAND:
 		wmId    = LOWORD(wParam);
@@ -128,7 +188,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			break;
         case ID_FILE_RESTART:
             gameBoard->Reset();
-            InvalidateRect(hWnd, 0, TRUE);
+            InvalidateAll(hWnd);
             break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
@@ -142,65 +202,73 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             xPos < RESET_BUTTON_X + RESET_BUTTON_SIZE &&
             yPos >= RESET_BUTTON_Y &&
             yPos < RESET_BUTTON_Y + RESET_BUTTON_SIZE) {
-
-
-            refrRect.right = RESET_BUTTON_X + RESET_BUTTON_SIZE;
-            refrRect.left = RESET_BUTTON_X;
-            refrRect.bottom = RESET_BUTTON_Y + RESET_BUTTON_SIZE;
-            refrRect.top = RESET_BUTTON_Y;
-
-            InvalidateRect(hWnd, &refrRect, TRUE);
-
+            InvalidateReset(hWnd);
             isButtonDown = true;
             break;
         }
 
-        gameBoard->Show((xPos - BOARD_X) / CELL_SIZE, (yPos - BOARD_Y) / CELL_SIZE);
+        if (gameBoard->IsGameOver()) break;
 
-        refrRect.left = BOARD_X;
-        refrRect.top = BOARD_Y;
-        refrRect.right = BOARD_X + SWEEPER_SIZE * CELL_SIZE;
-        refrRect.bottom = BOARD_Y + SWEEPER_SIZE * CELL_SIZE;
-        InvalidateRect(hWnd, &refrRect, TRUE);
+        hoverX = (xPos - BOARD_X) / CELL_SIZE;
+        hoverY = (yPos - BOARD_Y) / CELL_SIZE;
+        isClicking = true;
 
-        refrRect.left = SHADOW_SIZE * 2 + FRAME_SIZE;
-        refrRect.top = SCOREBOARD_SIZE + FRAME_SIZE - SCOREBOARD_NUMBER_HEIGHT;
-        refrRect.right = refrRect.left + SCOREBOARD_NUMBER_WIDTH * 3;
-        refrRect.bottom = refrRect.top + SCOREBOARD_NUMBER_HEIGHT;
-        InvalidateRect(hWnd, &refrRect, TRUE);
+        InvalidateCell(hWnd, hoverX, hoverY);
+        InvalidateReset(hWnd);
+        break;
+    case WM_MOUSEMOVE:
+        if (isClicking && !gameBoard->IsGameOver()) {
+            xPos = GET_X_LPARAM(lParam);
+            yPos = GET_Y_LPARAM(lParam);
+
+            xCell = (xPos - BOARD_X) / CELL_SIZE;
+            yCell = (yPos - BOARD_Y) / CELL_SIZE;
+
+            if (xCell != hoverX || yCell != hoverY) {
+                InvalidateCell(hWnd, xCell, yCell);
+                InvalidateCell(hWnd, hoverX, hoverY);
+
+                hoverX = xCell;
+                hoverY = yCell;
+            }
+        }
         break;
     case WM_LBUTTONUP:
         if (isButtonDown) {
             gameBoard->Reset();
-            InvalidateRect(hWnd, 0, TRUE);
-
-            isButtonDown = false;
+            InvalidateAll(hWnd);
         }
 
+        if (isClicking && !gameBoard->IsGameOver()) {
+            xPos = GET_X_LPARAM(lParam);
+            yPos = GET_Y_LPARAM(lParam);
 
+            gameBoard->Show((xPos - BOARD_X) / CELL_SIZE, (yPos - BOARD_Y) / CELL_SIZE);
+            InvalidateReset(hWnd);
+            InvalidateBoard(hWnd);
+
+            hoverX = -1;
+            hoverY = -1;
+        }
+
+        isButtonDown = false;
+        isClicking = false;
         break;
     case WM_RBUTTONDOWN:
+        if (gameBoard->IsGameOver()) break;
+
         xPos = GET_X_LPARAM(lParam);
         yPos = GET_Y_LPARAM(lParam);
 
         gameBoard->Flag((xPos - BOARD_X) / CELL_SIZE, (yPos - BOARD_Y) / CELL_SIZE);
-
-        refrRect.left = BOARD_X;
-        refrRect.top = BOARD_Y;
-        refrRect.right = BOARD_X + SWEEPER_SIZE * CELL_SIZE;
-        refrRect.bottom = BOARD_Y + SWEEPER_SIZE * CELL_SIZE;
-        InvalidateRect(hWnd, &refrRect, TRUE);
+        InvalidateCell(hWnd, (xPos - BOARD_X) / CELL_SIZE, (yPos - BOARD_Y) / CELL_SIZE);
+        InvalidateScore(hWnd);
         break;
     case WM_TIMER:
         switch (wParam)
         {
         case IDT_SCORETIME_TIMER:
-            refrRect.right = SHADOW_SIZE * 2 + FRAME_SIZE + SWEEPER_SIZE * CELL_SIZE;
-            refrRect.left = refrRect.right - SCOREBOARD_NUMBER_WIDTH * 3;
-            refrRect.bottom = SCOREBOARD_SIZE + FRAME_SIZE;
-            refrRect.top = refrRect.bottom - SCOREBOARD_NUMBER_HEIGHT;
-
-            InvalidateRect(hWnd, &refrRect, TRUE);
+            InvalidateTime(hWnd);
             break;
         }
         break;
@@ -212,19 +280,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         DrawBoard(hdc, BOARD_WIDTH, BOARD_HEIGHT, SWEEPER_SIZE * CELL_SIZE, SWEEPER_SIZE * CELL_SIZE);
 
-        DrawScoreboardNumbers(hdc, SHADOW_SIZE * 2 + FRAME_SIZE, 
-            SCOREBOARD_SIZE + FRAME_SIZE - SCOREBOARD_NUMBER_HEIGHT, 
+        DrawScoreboardNumbers(hdc, SHADOW_SIZE * 2 + FRAME_SIZE * 2, 
+            SCORE_NUMBER_Y,
             gameBoard->GetScore(), 3);
 
-        DrawScoreboardNumbers(hdc, SHADOW_SIZE * 2 + FRAME_SIZE + 
-            SWEEPER_SIZE * CELL_SIZE - SCOREBOARD_NUMBER_WIDTH * 3,
-            SCOREBOARD_SIZE + FRAME_SIZE - SCOREBOARD_NUMBER_HEIGHT, 
+        DrawScoreboardNumbers(hdc, SHADOW_SIZE * 2 + SWEEPER_SIZE * CELL_SIZE -
+            SCOREBOARD_NUMBER_WIDTH * 3,
+            SCORE_NUMBER_Y,
             gameBoard->GetPlayTime(), 3);
 
-        DrawResetButton(hdc, RESET_BUTTON_X, RESET_BUTTON_Y, BUTTON_STATE_NORMAL, isButtonDown);
+        DrawResetButton(hdc, RESET_BUTTON_X, RESET_BUTTON_Y, 
+            !gameBoard->IsGameOver() && isClicking ? BUTTON_STATE_CLICKING :
+            gameBoard->IsGameOver() && gameBoard->IsWon() ? BUTTON_STATE_VICTORY :
+            gameBoard->IsGameOver() ? BUTTON_STATE_DEFEAT :
+            BUTTON_STATE_NORMAL, isButtonDown);
 
         for (int y = 0; y < gameBoard->GetSize(); y++)
             for (int x = 0; x < gameBoard->GetSize(); x++) {
+                if (isClicking && hoverX == x && hoverY == y) {
+                    DrawVisibleCell(hdc, BOARD_X + x * CELL_SIZE, BOARD_Y + y * CELL_SIZE, 0);
+                    continue;
+                }
                 switch (gameBoard->GetCellState(x, y)) {
                 case CELL_UNKNOWN:
                     DrawCell(hdc, BOARD_X + x * CELL_SIZE, BOARD_Y + y * CELL_SIZE);

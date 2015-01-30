@@ -28,7 +28,10 @@ public:
         return boardSize;
     }
     bool IsGameOver() {
-        return isGameOver;
+        return isDefeat || isVictory;
+    }
+    bool IsWon() {
+        return isVictory;
     }
     int GetNeighbouringBombs(int x, int y) {
         return GetCell(x, y)->neighbouringBombs;
@@ -37,12 +40,12 @@ public:
         auto cell = GetCell(x, y);
 
 
-        if (cell->isFlagged && isGameOver && cell->isBomb) return CELL_BOMB;
+        if (cell->isFlagged && IsGameOver() && cell->isBomb) return CELL_BOMB;
         if (cell->isFlagged) return CELL_FLAGGED;
 
         if (cell->isVisible && cell->isBomb) return CELL_EXPLOAD;
-        if (cell->isVisible || (!cell->isBomb && isGameOver)) return CELL_VISIBLE;
-        if (cell->isBomb && isGameOver) return CELL_BOMB;
+        if (cell->isVisible || (!cell->isBomb && IsGameOver())) return CELL_VISIBLE;
+        if (cell->isBomb && IsGameOver()) return CELL_BOMB;
         
         return CELL_UNKNOWN;
     }
@@ -50,7 +53,8 @@ private:
     int score = 0;
     int boardSize;
     int boardMines;
-    bool isGameOver;
+    bool isDefeat;
+    bool isVictory;
     bool isStarted;
     time_t startTime;
     time_t endTime;
@@ -70,17 +74,6 @@ private:
 
         return cell && !cell->isVisible && 
             !cell->isBomb && !cell->isFlagged;
-    }
-    bool IsAllBombsFlagged() {
-        for (int y = 0; y < boardSize; y++)
-            for (int x = 0; x < boardSize; x++) {
-                auto cell = GetCell(x, y);
-
-                if (cell->isBomb && !cell->isFlagged)
-                    return false;
-            }
-
-        return true;
     }
     bool IsAllCellsVisible() {
         for (int y = 0; y < boardSize; y++)
