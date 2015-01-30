@@ -144,98 +144,16 @@ void DrawVisibleCell(HDC hdc, int x, int y, int count)
 
 void DrawFlaggedCell(HDC hdc, int x, int y)
 {
-    POINT Pt[11];
+    const unsigned int flag[] = {
+        0x02802A80, 0xAA802A80, 0x02800040, 0x00400550, 0x55555555,
+    };
+
+    const COLORREF palette[] = {
+        RGB(0, 0, 0), RGB(255, 0, 0)
+    };
 
     DrawCell(hdc, x, y);
-
-    const int flagWidth = 8;
-    const int flagHeight = 10;
-
-    const int hOffset = (CELL_SIZE - flagWidth) / 2;
-    const int vOffset = (CELL_SIZE - flagHeight) / 2;
-
-    const int baseOffsetX = x + hOffset;
-    const int baseOffsetY = y + CELL_SIZE - vOffset;
-
-    Pt[0].x = baseOffsetX;
-    Pt[0].y = baseOffsetY;
-
-    Pt[1].x = baseOffsetX;
-    Pt[1].y = baseOffsetY - 1;
-
-    Pt[2].x = baseOffsetX + 2;
-    Pt[2].y = baseOffsetY - 1;
-
-    Pt[3].x = baseOffsetX + 2;
-    Pt[3].y = baseOffsetY - 2;
-
-    Pt[4].x = baseOffsetX + 4;
-    Pt[4].y = baseOffsetY - 2;
-
-    Pt[5].x = baseOffsetX + 4;
-    Pt[5].y = baseOffsetY - 4;
-
-    Pt[6].x = baseOffsetX + 4;
-    Pt[6].y = baseOffsetY - 2;
-
-    Pt[7].x = baseOffsetX + 5;
-    Pt[7].y = baseOffsetY - 2;
-
-    Pt[8].x = baseOffsetX + 5;
-    Pt[8].y = baseOffsetY - 1;
-
-    Pt[9].x = baseOffsetX + 7;
-    Pt[9].y = baseOffsetY - 1;
-
-    Pt[10].x = baseOffsetX + 7;
-    Pt[10].y = baseOffsetY;
-
-    SetDCPenColor(hdc, COLOR_BLACK_FLAG);
-    SetDCBrushColor(hdc, COLOR_BLACK_FLAG);
-
-    Polygon(hdc, Pt, 11);
-
-    const int flagOffsetX = baseOffsetX + 4;
-    const int flagOffsetY = baseOffsetY - 5;
-
-    Pt[0].x = flagOffsetX;
-    Pt[0].y = flagOffsetY;
-
-    Pt[1].x = flagOffsetX;
-    Pt[1].y = flagOffsetY - 4;
-
-    Pt[2].x = flagOffsetX - 1;
-    Pt[2].y = flagOffsetY - 4;
-
-    Pt[3].x = flagOffsetX - 1;
-    Pt[3].y = flagOffsetY - 3;
-
-    Pt[4].x = flagOffsetX - 3;
-    Pt[4].y = flagOffsetY - 3;
-
-    Pt[5].x = flagOffsetX - 3;
-    Pt[5].y = flagOffsetY - 2;
-
-    Pt[6].x = flagOffsetX - 4;
-    Pt[6].y = flagOffsetY - 2;
-
-    Pt[7].x = flagOffsetX - 3;
-    Pt[7].y = flagOffsetY - 2;
-
-    Pt[8].x = flagOffsetX - 3;
-    Pt[8].y = flagOffsetY - 1;
-
-    Pt[9].x = flagOffsetX - 1;
-    Pt[9].y = flagOffsetY - 1;
-
-    Pt[10].x = flagOffsetX - 1;
-    Pt[10].y = flagOffsetY;
-
-    SetDCPenColor(hdc, COLOR_RED_FLAG);
-    SetDCBrushColor(hdc, COLOR_RED_FLAG);
-
-    Polygon(hdc, Pt, 11);
-
+    DrawImage(hdc, x + 4, y + 3, 8, 10, flag, palette, 2);
 }
 
 void DrawBombCell(HDC hdc, int x, int y, bool hasExploded)
