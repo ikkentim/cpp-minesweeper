@@ -15,6 +15,7 @@ void GameBoard::GenerateBoard(int size, int mines) {
             BoardCell *cell = GetCell(x, y);
             cell->isBomb = false;
             cell->isFlagged = false;
+            cell->isInvestigation = false;
             cell->isVisible = false;
             cell->neighbouringBombs = 0;
         }
@@ -94,10 +95,19 @@ void GameBoard::Reveal(int x, int y) {
 void GameBoard::Show(int x, int y) {
     BoardCell *cell = GetCell(x, y);
 
-    if (!cell || cell->isVisible || IsGameOver()) return;
+    if (!cell || cell->isVisible || cell->isFlagged || 
+        cell->isInvestigation || IsGameOver()) return;
+
+    /* Ensure first move is lucky
+     */
+    while (!isStarted && cell->isBomb) {
+        GenerateBoard(boardSize, boardMines);
+        cell = GetCell(x, y);
+    }
 
     if (!isStarted)
         startTime = time(NULL);
+
 
 
     isStarted = true;
@@ -109,8 +119,18 @@ void GameBoard::Flag(int x, int y) {
 
     if (!cell || cell->isVisible || IsGameOver()) return;
 
-    score += cell->isFlagged ? 1 : -1;
-    cell->isFlagged = !cell->isFlagged;
+    if (!cell->isFlagged && !cell->isInvestigation) {
+        cell->isFlagged = true;
+        score--;
+    }
+    else if (cell->isFlagged) {
+        cell->isFlagged = false;
+        cell->isInvestigation = true;
+        score++;
+    }
+    else if (cell->isInvestigation) {
+        cell->isInvestigation = false;
+    }
 }
 
 int GameBoard::GetPlayTime() {

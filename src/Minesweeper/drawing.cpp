@@ -90,10 +90,6 @@ void DrawCell(HDC hdc, int x, int y) {
 
 void DrawVisibleCell(HDC hdc, int x, int y, int count)
 {
-    SetDCPenColor(hdc, COLOR_CONTROL);
-    SetDCBrushColor(hdc, COLOR_CONTROL);
-    Rectangle(hdc, x, y, x + CELL_SIZE, y + CELL_SIZE);
-
     POINT Pt[3];
 
     Pt[0].x = x;
@@ -109,37 +105,35 @@ void DrawVisibleCell(HDC hdc, int x, int y, int count)
     SetDCBrushColor(hdc, COLOR_CONTROL_DARK);
     Polyline(hdc, Pt, 3);
 
-    if (!count) return;
+    if (count <= 0 || count > 8) return;
 
-    switch (count) {
-    case 1:
-        SetTextColor(hdc, RGB(0x00, 0x00, 0xFF));
-        break;
-    case 2:
-        SetTextColor(hdc, RGB(0x00, 0x80, 0x00));
-        break;
-    case 3:
-        SetTextColor(hdc, RGB(0xFF, 0x00, 0x00));
-        break;
-    default:
-        SetTextColor(hdc, RGB(0xFF, 0x00, 0x90));
-        break;
-    }
+    const unsigned int numbers[] = {
+        0x00140005, 0x40015400, 0x55400054, 0x00054000, 0x54000540, 0x05554055,
+        0x54000000,
+        0x15554555, 0x55540150, 0x00150015, 0x40155015, 0x50055000, 0x55555555,
+        0x55000000,
+        0x55554555, 0x55000150, 0x00150155, 0x40155400, 0x01500015, 0x55555555,
+        0x54000000,
+        0x05454054, 0x54150541, 0x50545555, 0x55555500, 0x05400054, 0x00054000,
+        0x54000000,
+        0x55555555, 0x55540005, 0x40005555, 0x45555500, 0x01500015, 0x55555555,
+        0x54000000,
+        0x15554555, 0x54540005, 0x40005555, 0x45555554, 0x01554015, 0x55555155,
+        0x54000000,
+        0x55555555, 0x55000150, 0x00150005, 0x40005400, 0x15000150, 0x00540005,
+        0x40000000,
+        0x15554555, 0x55540155, 0x40151555, 0x41555454, 0x01554015, 0x55555155,
+        0x54000000
+    };
 
-    HFONT font = CreateFont(
-		12, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, ANSI_CHARSET, 
-        OUT_RASTER_PRECIS, CLIP_DEFAULT_PRECIS, NONANTIALIASED_QUALITY,
-        DEFAULT_PITCH | FF_SCRIPT, L"Brush Script");
+    const COLORREF palette[] = {
+        RGB(0x00, 0x00, 0xFF), RGB(0x00, 0x80, 0x00), RGB(0xFF, 0x00, 0x00), 
+        RGB(0x00, 0x00, 0x80), RGB(0x80, 0x00, 0x00), RGB(0x00, 0x80, 0x80), 
+        RGB(0x00, 0x00, 0x00), RGB(0x80, 0x80, 0x80)
+    };
 
-    SelectObject(hdc, font);
-
-    TCHAR *text = new TCHAR;
-    *text = '0' + count;
-
-    SetBkMode(hdc, TRANSPARENT);
-    TextOut(hdc, x + 5, y + 2, text, 1);
-
-    DeleteObject(font);
+    count--;
+    DrawImage(hdc, x + 3, y + 3, 10, 10, &numbers[count * 7], &palette[count], 2);
 }
 
 void DrawFlaggedCell(HDC hdc, int x, int y)
@@ -156,19 +150,42 @@ void DrawFlaggedCell(HDC hdc, int x, int y)
     DrawImage(hdc, x + 4, y + 3, 8, 10, flag, palette, 2);
 }
 
-void DrawBombCell(HDC hdc, int x, int y, bool hasExploded)
+void DrawInvestigateCell(HDC hdc, int x, int y)
+{
+    const unsigned int mark[] = {
+        0x15450550, 0x50050140, 0x50050000, 0x05005000,
+    };
+
+    const COLORREF palette = RGB(0, 0, 0);
+
+    DrawCell(hdc, x, y);
+    DrawImage(hdc, x + 5, y + 3, 6, 10, mark, &palette, 2);
+}
+
+void DrawBombCell(HDC hdc, int x, int y, bool hasExploded, bool isInvalid)
 {
     const unsigned int bomb[] = {
         0x00040000, 0x01000045, 0x54400555, 0x4005A554, 0x01695505, 0x55555415,
         0x55500555, 0x54005554, 0x00455440, 0x00100000, 0x10000000
     };
 
-    const COLORREF palette[] = {
-        RGB(0, 0, 0), RGB(255, 255, 255)
+    const unsigned int invalidBomb[] = {
+        0x0004003C, 0x0100F3C5, 0x54F03D55, 0xF007E5F4, 0x017DF505, 0x57F55415,
+        0xFD5005F7, 0xD400F57C, 0x00F557C0, 0xF0103CF0, 0x0403C000
     };
 
+    const COLORREF palette[] = {
+        RGB(0, 0, 0), RGB(255, 255, 255), RGB(255, 0, 0)
+    };
+
+    if (hasExploded) {
+        SetDCPenColor(hdc, COLOR_EXPLOAD);
+        SetDCBrushColor(hdc, COLOR_EXPLOAD);
+        Rectangle(hdc, x, y, x + CELL_SIZE, y + CELL_SIZE);
+    }
     DrawVisibleCell(hdc, x, y, 0);
-    DrawImage(hdc, x + 2, y + 2, 13, 13, bomb, palette, 2);
+    DrawImage(hdc, x + 2, y + 2, 13, 13, isInvalid ? 
+        invalidBomb : bomb, palette, 2);
 }
 
 void DrawScoreboardNumber(HDC hdc, int x, int y, int number) {

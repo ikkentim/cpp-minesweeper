@@ -312,11 +312,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 case CELL_FLAGGED:
                     DrawFlaggedCell(hdc, BOARD_X + x * CELL_SIZE, BOARD_Y + y * CELL_SIZE);
                     break;
+                case CELL_FLAGGED_INVALID:
+                    DrawBombCell(hdc, BOARD_X + x * CELL_SIZE, BOARD_Y + y * CELL_SIZE, false, true);
+                    break;
+                case CELL_INVESTIGATE:
+                    DrawInvestigateCell(hdc, BOARD_X + x * CELL_SIZE, BOARD_Y + y * CELL_SIZE);
+                    break;
                 case CELL_EXPLOAD:
-                    DrawBombCell(hdc, BOARD_X + x * CELL_SIZE, BOARD_Y + y * CELL_SIZE, true);
+                    DrawBombCell(hdc, BOARD_X + x * CELL_SIZE, BOARD_Y + y * CELL_SIZE, true, false);
                     break;
                 case CELL_BOMB:
-                    DrawBombCell(hdc, BOARD_X + x * CELL_SIZE, BOARD_Y + y * CELL_SIZE, false);
+                    DrawBombCell(hdc, BOARD_X + x * CELL_SIZE, BOARD_Y + y * CELL_SIZE, false, false);
                     break;
                 }
             }

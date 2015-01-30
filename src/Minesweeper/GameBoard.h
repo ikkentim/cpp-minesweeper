@@ -5,11 +5,14 @@
 #define CELL_FLAGGED    2
 #define CELL_EXPLOAD    3
 #define CELL_BOMB       4
+#define CELL_FLAGGED_INVALID       6
+#define CELL_INVESTIGATE 5
 
 class GameBoard {
     struct BoardCell {
         int neighbouringBombs;
         bool isFlagged;
+        bool isInvestigation;
         bool isBomb;
         bool isVisible;
     };
@@ -39,13 +42,15 @@ public:
     int GetCellState(int x, int y) {
         auto cell = GetCell(x, y);
 
+        if (IsGameOver()) {
+            if (cell->isVisible && cell->isBomb) return CELL_EXPLOAD;
+            if (cell->isBomb && !cell->isFlagged) return CELL_BOMB;
+            if (!cell->isBomb && cell->isFlagged) return CELL_FLAGGED_INVALID;
+        }
 
-        if (cell->isFlagged && IsGameOver() && cell->isBomb) return CELL_BOMB;
         if (cell->isFlagged) return CELL_FLAGGED;
-
-        if (cell->isVisible && cell->isBomb) return CELL_EXPLOAD;
-        if (cell->isVisible || (!cell->isBomb && IsGameOver())) return CELL_VISIBLE;
-        if (cell->isBomb && IsGameOver()) return CELL_BOMB;
+        if (cell->isInvestigation) return CELL_INVESTIGATE;
+        if (cell->isVisible) return CELL_VISIBLE;
         
         return CELL_UNKNOWN;
     }

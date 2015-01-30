@@ -31,7 +31,8 @@
 void DrawCell(HDC hdc, int x, int y);
 void DrawVisibleCell(HDC hdc, int x, int y, int count);
 void DrawFlaggedCell(HDC hdc, int x, int y);
-void DrawBombCell(HDC hdc, int x, int y, bool hasExploded);
+void DrawInvestigateCell(HDC hdc, int x, int y);
+void DrawBombCell(HDC hdc, int x, int y, bool hasExploded, bool isInvalid);
 void DrawBoard(HDC hdc, int width, int height, int boardWidth, int boardHeight);
 void DrawScoreboardNumbers(HDC hdc, int x, int y, int score, int numbers);
 void DrawResetButton(HDC hdc, int x, int y, int status, bool isDown);
