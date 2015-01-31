@@ -1,3 +1,5 @@
+#include <stack>
+
 #pragma once
 
 #define CELL_UNKNOWN    0
@@ -20,7 +22,7 @@ class GameBoard {
 public:
     GameBoard(int size,int bombs);
     ~GameBoard();
-    void Show(int x, int y);
+    void Show(int x, int y, std::stack<int> *updatedCells);
     void Flag(int x, int y);
     void Reset();
     int GetPlayTime();
@@ -65,6 +67,10 @@ private:
     time_t endTime;
 
     BoardCell *boardCells;
+
+    void GenerateBoard(int size, int mines);
+    void Reveal(int x, int y, std::stack<int> *updatedCells);
+
     BoardCell *GetCell(int x, int y) {
         if (x < 0 || x >= boardSize ||
             y < 0 || y >= boardSize)
@@ -72,8 +78,6 @@ private:
         int idx = x + y * boardSize;
         return &boardCells[idx];
     }
-    void GenerateBoard(int size, int mines);
-    void Reveal(int x, int y);
     bool IsDiscoverable(int x, int y) {
         auto cell = GetCell(x, y);
 

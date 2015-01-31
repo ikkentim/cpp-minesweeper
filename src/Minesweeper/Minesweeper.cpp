@@ -26,7 +26,6 @@ bool isClicking;
 int hoverX = -1, hoverY = -1;
 
 HINSTANCE hInst;
-TCHAR szWindowClass[MAX_LOADSTRING];
 
 ATOM				MyRegisterClass(HINSTANCE hInstance);
 BOOL				InitInstance(HINSTANCE, int);
@@ -47,7 +46,6 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 	MSG msg;
 	HACCEL hAccelTable;
 
-	LoadString(hInstance, IDC_MINESWEEPER, szWindowClass, MAX_LOADSTRING);
 	MyRegisterClass(hInstance);
 
 	if (!InitInstance (hInstance, nCmdShow)) return false;
@@ -78,7 +76,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance) {
 	wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
 	wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);
 	wcex.lpszMenuName	= MAKEINTRESOURCE(IDC_MINESWEEPER);
-	wcex.lpszClassName	= szWindowClass;
+	wcex.lpszClassName	= L"Minesweeper";
 	wcex.hIconSm		= LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
 	return RegisterClassEx(&wcex);
@@ -92,9 +90,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow) {
 
    HWND hWnd = CreateWindowEx(
        0,
-       szWindowClass,
        L"Minesweeper",
-       WS_OVERLAPPEDWINDOW ^ WS_THICKFRAME ^ WS_MAXIMIZEBOX,
+       L"Minesweeper",
+       WS_OVERLAPPEDWINDOW ^ WS_THICKFRAME ^ WS_MAXIMIZEBOX |
+       WS_CLIPSIBLINGS |
+       WS_CLIPCHILDREN,
        CW_USEDEFAULT,
        CW_USEDEFAULT,
        winSz.right - winSz.left,
@@ -115,7 +115,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow) {
    return true;
 }
 void InvalidateAll(HWND hWnd) {
-    InvalidateRect(hWnd, 0, TRUE);
+    InvalidateRect(hWnd, 0, FALSE);
 }
 
 void InvalidateScore(HWND hWnd) {
@@ -125,7 +125,7 @@ void InvalidateScore(HWND hWnd) {
     rect.right = rect.left + SCOREBOARD_NUMBER_WIDTH * 3;
     rect.bottom = SCORE_NUMBER_Y + SCOREBOARD_NUMBER_HEIGHT;
 
-    InvalidateRect(hWnd, &rect, TRUE);
+    InvalidateRect(hWnd, &rect, FALSE);
 }
 
 void InvalidateTime(HWND hWnd) {
@@ -136,7 +136,7 @@ void InvalidateTime(HWND hWnd) {
     rect.bottom = SCORE_NUMBER_Y + SCOREBOARD_NUMBER_HEIGHT;
     rect.top = SCORE_NUMBER_Y;
 
-    InvalidateRect(hWnd, &rect, TRUE);
+    InvalidateRect(hWnd, &rect, FALSE);
 }
 
 void InvalidateBoard(HWND hWnd) {
@@ -146,7 +146,7 @@ void InvalidateBoard(HWND hWnd) {
         BOARD_Y + SWEEPER_SIZE * CELL_SIZE
     };
 
-    InvalidateRect(hWnd, &rect, TRUE);
+    InvalidateRect(hWnd, &rect, FALSE);
 }
 
 void InvalidateReset(HWND hWnd) {
@@ -156,7 +156,7 @@ void InvalidateReset(HWND hWnd) {
         RESET_BUTTON_Y + RESET_BUTTON_SIZE 
     };
 
-    InvalidateRect(hWnd, &rect, TRUE);
+    InvalidateRect(hWnd, &rect, FALSE);
 }
 
 void InvalidateCell(HWND hWnd, int x, int y) {
@@ -167,7 +167,7 @@ void InvalidateCell(HWND hWnd, int x, int y) {
         BOARD_Y + y * CELL_SIZE + CELL_SIZE
     };
 
-    InvalidateRect(hWnd, &rect, TRUE);
+    InvalidateRect(hWnd, &rect, FALSE);
 
 }
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
@@ -213,7 +213,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         hoverY = (yPos - BOARD_Y) / CELL_SIZE;
         isClicking = true;
 
-        InvalidateCell(hWnd, hoverX, hoverY);
+        if (gameBoard->GetCellState(hoverX, hoverY) == CELL_UNKNOWN) InvalidateCell(hWnd, hoverX, hoverY);
         InvalidateReset(hWnd);
         break;
     case WM_MOUSEMOVE:
@@ -225,8 +225,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             yCell = (yPos - BOARD_Y) / CELL_SIZE;
 
             if (xCell != hoverX || yCell != hoverY) {
-                InvalidateCell(hWnd, xCell, yCell);
-                InvalidateCell(hWnd, hoverX, hoverY);
+                if (gameBoard->GetCellState(xCell, yCell) == CELL_UNKNOWN) InvalidateCell(hWnd, xCell, yCell);
+                if (gameBoard->GetCellState(hoverX, hoverY) == CELL_UNKNOWN) InvalidateCell(hWnd, hoverX, hoverY);
 
                 hoverX = xCell;
                 hoverY = yCell;
@@ -243,9 +243,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             xPos = GET_X_LPARAM(lParam);
             yPos = GET_Y_LPARAM(lParam);
 
-            gameBoard->Show((xPos - BOARD_X) / CELL_SIZE, (yPos - BOARD_Y) / CELL_SIZE);
+            std::stack<int> updatedCells;
+            gameBoard->Show((xPos - BOARD_X) / CELL_SIZE, (yPos - BOARD_Y) / CELL_SIZE, &updatedCells);
             InvalidateReset(hWnd);
-            InvalidateBoard(hWnd);
+
+            while (!updatedCells.empty())
+            {
+                int updCell = updatedCells.top();
+                if (updCell == -1)
+                    InvalidateBoard(hWnd);
+                else
+                    InvalidateCell(hWnd, updCell % SWEEPER_SIZE, updCell / SWEEPER_SIZE);
+
+                updatedCells.pop();
+            }
 
             hoverX = -1;
             hoverY = -1;
@@ -272,6 +283,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             break;
         }
         break;
+    case WM_ERASEBKGND:
+        return 1;
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
 
@@ -297,7 +310,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         for (int y = 0; y < gameBoard->GetSize(); y++)
             for (int x = 0; x < gameBoard->GetSize(); x++) {
-                if (isClicking && hoverX == x && hoverY == y) {
+                if (isClicking && hoverX == x && hoverY == y && gameBoard->GetCellState(x,y) == CELL_UNKNOWN) {
                     DrawVisibleCell(hdc, BOARD_X + x * CELL_SIZE, BOARD_Y + y * CELL_SIZE, 0);
                     continue;
                 }

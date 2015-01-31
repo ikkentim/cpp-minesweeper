@@ -7,6 +7,7 @@
 void GameBoard::GenerateBoard(int size, int mines) {
     boardSize = size;
     boardMines = mines;
+
     boardCells = new BoardCell[size * size];
 
     // initialize
@@ -47,6 +48,8 @@ void GameBoard::GenerateBoard(int size, int mines) {
 }
 
 void GameBoard::Reset() {
+    delete[] boardCells;
+
     GenerateBoard(boardSize, boardMines);
 
     score = boardMines;
@@ -67,7 +70,7 @@ GameBoard::~GameBoard() {
     delete[] boardCells;
 }
 
-void GameBoard::Reveal(int x, int y) {
+void GameBoard::Reveal(int x, int y, std::stack<int> *updatedCells) {
     BoardCell *cell = GetCell(x, y);
 
     if (!cell || cell->isVisible || IsGameOver()) return;
@@ -76,23 +79,25 @@ void GameBoard::Reveal(int x, int y) {
     cell->isFlagged = false;
 
     if (cell->isBomb) isDefeat = true;
-    if (IsAllCellsVisible()) {
-        isVictory = true;
-    }
+    if (IsAllCellsVisible()) isVictory = true;
+    
 
+    if (updatedCells && !IsGameOver()) updatedCells->push(x + y * boardSize);
+    if (updatedCells && IsGameOver()) updatedCells->push(-1);
+    
     if (cell->neighbouringBombs) return;
 
-    if (IsDiscoverable(x - 1, y)) Reveal(x - 1, y);
-    if (IsDiscoverable(x + 1, y)) Reveal(x + 1, y);
-    if (IsDiscoverable(x, y - 1)) Reveal(x, y - 1);
-    if (IsDiscoverable(x, y + 1)) Reveal(x, y + 1);
+    if (IsDiscoverable(x - 1, y)) Reveal(x - 1, y, updatedCells);
+    if (IsDiscoverable(x + 1, y)) Reveal(x + 1, y, updatedCells);
+    if (IsDiscoverable(x, y - 1)) Reveal(x, y - 1, updatedCells);
+    if (IsDiscoverable(x, y + 1)) Reveal(x, y + 1, updatedCells);
 
-    if (IsDiscoverable(x - 1, y - 1)) Reveal(x - 1, y - 1);
-    if (IsDiscoverable(x + 1, y - 1)) Reveal(x + 1, y - 1);
-    if (IsDiscoverable(x + 1, y + 1)) Reveal(x + 1, y + 1);
-    if (IsDiscoverable(x - 1, y + 1)) Reveal(x - 1, y + 1);
+    if (IsDiscoverable(x - 1, y - 1)) Reveal(x - 1, y - 1, updatedCells);
+    if (IsDiscoverable(x + 1, y - 1)) Reveal(x + 1, y - 1, updatedCells);
+    if (IsDiscoverable(x + 1, y + 1)) Reveal(x + 1, y + 1, updatedCells);
+    if (IsDiscoverable(x - 1, y + 1)) Reveal(x - 1, y + 1, updatedCells);
 }
-void GameBoard::Show(int x, int y) {
+void GameBoard::Show(int x, int y, std::stack<int> *updatedCells) {
     BoardCell *cell = GetCell(x, y);
 
     if (!cell || cell->isVisible || cell->isFlagged || 
@@ -108,10 +113,8 @@ void GameBoard::Show(int x, int y) {
     if (!isStarted)
         startTime = time(NULL);
 
-
-
     isStarted = true;
-    Reveal(x, y);
+    Reveal(x, y, updatedCells);
 }
 
 void GameBoard::Flag(int x, int y) {
