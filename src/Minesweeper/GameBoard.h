@@ -44,6 +44,8 @@ public:
     int GetCellState(int x, int y) {
         auto cell = GetCell(x, y);
 
+        if (!cell) return CELL_UNKNOWN;
+
         if (IsGameOver()) {
             if (cell->isVisible && cell->isBomb) return CELL_EXPLOAD;
             if (cell->isBomb && !cell->isFlagged) return CELL_BOMB;
